@@ -73,6 +73,13 @@ RTTHREAD_MAX_COMMITS ?= 0xffffffffffff
 RUN_ARGS ?=
 COREMARK_RUN_ARGS = $(if $(filter coremark.exe,$(notdir $(IMAGE))),--max-cycles $(COREMARK_MAX_CYCLES),)
 
+# TAGE vs baseline-BTB IPC comparison (see `make compare-tage`).
+BASE_REF ?= master
+BASE_WORKTREE ?= $(BUILD_DIR)/baseline-$(BASE_REF)
+COMPARE_MAX_COMMITS ?= 5000000
+COMPARE_COREMARK ?= $(ROOT)/verify/apps/coremark/coremark.exe
+COMPARE_DHRYSTONE ?= $(ROOT)/verify/apps/dhrystone/dhrystone.exe
+
 VERILATOR_FLAGS ?= \
 	--cc --exe --build \
 	--top-module verilator_top \
@@ -148,6 +155,12 @@ linux-nodiff: $(EMU)
 test: $(EMU)
 	ELF64_OBJCOPY=$(ELF64_OBJCOPY) bash test/smoke.sh $(EMU) $(IMAGE) $(REF)
 
+compare-tage: $(EMU)
+	JOBS="$(JOBS)" bash test/compare_tage.sh \
+		"$(EMU)" "$(BASE_REF)" "$(BASE_WORKTREE)" "$(ROOT)" \
+		"coremark:$(COMPARE_COREMARK):$(COMPARE_MAX_COMMITS)" \
+		"dhrystone:$(COMPARE_DHRYSTONE):$(COMPARE_MAX_COMMITS)"
+
 clean:
 	rm -rf $(BUILD_DIR)
 
@@ -165,10 +178,15 @@ help:
 		'make linux           Boot the FPGA loader and Linux with DiffTest' \
 		'make linux-nodiff    Boot the FPGA loader and Linux without DiffTest' \
 		'make test            Run short no-diff and diff smoke tests' \
+		'make compare-tage    Build BASE_REF (default master, original BTB) in a' \
+		'                     worktree and print an IPC comparison for the images' \
+		'                     in COMPARE_COREMARK/COMPARE_DHRYSTONE' \
 		'make clean           Remove generated files' \
 		'' \
 		'Variables: CONFIG_MMU=0|1 CONFIG_SRAM=0|1 IMAGE=... REF=...' \
 		'           COREMARK_MAX_CYCLES=2G RTTHREAD_MAX_CYCLES=1M' \
-		'           RTTHREAD_MAX_COMMITS=300K RUN_ARGS="..." JOBS=N BUILD_DIR=...'
+		'           RTTHREAD_MAX_COMMITS=300K RUN_ARGS="..." JOBS=N BUILD_DIR=...' \
+		'           BASE_REF=master BASE_WORKTREE=... COMPARE_MAX_COMMITS=5M' \
+		'           COMPARE_COREMARK=... COMPARE_DHRYSTONE=...'
 
-.PHONY: all run run-nodiff run-coremark-sram run-rtthread-sram run-rtthread-axi linux linux-nodiff test clean help
+.PHONY: all run run-nodiff run-coremark-sram run-rtthread-sram run-rtthread-axi linux linux-nodiff test compare-tage clean help

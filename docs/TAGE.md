@@ -138,12 +138,25 @@ TAGE 仅对 `lisa_br` 训练与推进 GHR；无条件跳转 / jalr 不进入 TAG
   训练/更新路径；长时间零失配表明 TAGE 改造未破坏体系结构正确性。复现需将 Verilator 与
   LA32S 工具链加入 `PATH`，`make -C verify/verilator` 后以
   `--diff --ref verify/loong-emu/build/la_emu_ref.so` 运行；本机无
-  `loongarch64-linux-gnu-objcopy` 时 `make test` 需传 `ELF64_OBJCOPY=objcopy`。
+  `loongarch64-linux-gnu-objcopy` 时 `make test` 需传 `ELF64_OBJCOPY=objcopy`；
+- **CoreMark / Dhrystone 前后对比**：量化 TAGE 相对原 BTB 的 IPC 增益。基线取 TAGE 的父提交
+  （`master`，原 BTB 方向预测），两版 RTL 仅前端不同；`make -C verify/verilator compare-tage`
+  自动构建基线并在相同提交窗口比较 `IPC = commits / cycles`：
+
+  | 负载 | 窗口 | cycles 基线 BTB | cycles TAGE | IPC 基线 → TAGE | 增益 |
+  | --- | --- | --- | --- | --- | --- |
+  | CoreMark（3000 迭代镜像） | 5,000,000 commits | 6,958,154 | 6,935,548 | 0.71858 → 0.72092 | +0.326% |
+  | Dhrystone | 5,000,000 commits | 7,271,631 | 7,263,034 | 0.68760 → 0.68842 | +0.118% |
+  | CoreMark 30 迭代（全程 GOOD TRAP） | 8,864,282 commits | 12,334,473 | 12,294,427 | 0.71873 → 0.72100 | +0.316% |
+  | Dhrystone（全程 GOOD TRAP） | 5,846,441 commits | 8,498,478 | 8,488,469 | 0.68794 → 0.68875 | +0.118% |
+
+  基线全程 `12,334,473 / 8,864,282` 与仓库 README 记录的 CoreMark 结果一致，确认基线为原 BTB。
+  目标可用 `BASE_REF`（默认 `master`）、`COMPARE_MAX_COMMITS` 调整；`--no-diff` 运行提速，
+  `cycles` 与 DiffTest 模式相同。
 
 未做（**必须补做**）：
 
-- **Vivado 综合**：确认时序与资源（TAGE 表容量、组合索引路径）；
-- CoreMark / Dhrystone 前后对比，量化 TAGE 相对原 BTB 的 IPC 增益。
+- **Vivado 综合**：确认时序与资源（TAGE 表容量、组合索引路径）。
 
 ## 9. 后续可选改进
 
