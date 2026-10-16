@@ -316,6 +316,9 @@ wire          ft_pred_jrlo_hit;
 wire          ft_pred_jrra;
 wire [  3: 0] ft_pred_pos;
 wire [  2: 0] ft_pred_cnt;
+wire          ft_pred_cond;
+wire          ft_pred_tage_taken;
+wire [`OPEN132_TAGE_GHR_WD-1: 0] ft_pred_ghr;
 
 wire [ 31: 0] de_pred_pc;
 wire [ 31: 0] de_pred_npc;
@@ -326,6 +329,9 @@ wire [  3: 0] de_pred_pos;
 wire [  2: 0] de_pred_cnt;
 wire          de_pred_correct;
 wire          de_pred_valid;
+wire          de_pred_taken;
+wire          de_pred_cond;
+wire [`OPEN132_TAGE_GHR_WD-1: 0] de_pred_ghr;
 
 wire          perf_inst_ibus;
 wire          perf_inst_dbus;
@@ -1421,7 +1427,10 @@ assign {ft_pred_valid,
         ft_pred_jrlo_hit,
         ft_pred_jrra,
         ft_pred_pos,
-        ft_pred_cnt}  =  ifu_idu_pred_bus;
+        ft_pred_cnt,
+        ft_pred_cond,
+        ft_pred_tage_taken,
+        ft_pred_ghr}  =  ifu_idu_pred_bus;
 // End pred_bus
 //------------------------------------------------------------//
 //                     idu_bpu_update_bus
@@ -1435,7 +1444,10 @@ assign idu_bpu_update_bus  =  {de_pred_pc     ,
                                 de_pred_pos    ,
                                 de_pred_cnt    ,
                                 de_pred_correct,
-                                de_pred_valid
+                                de_pred_valid  ,
+                                de_pred_taken  ,
+                                de_pred_cond   ,
+                                de_pred_ghr
                               };
 
 //------------------------------------------------------------//
@@ -2137,6 +2149,9 @@ generate
         reg        pred_jrra;
         reg [ 3:0] pred_pos;
         reg [ 2:0] pred_cnt;
+        reg        pred_cond;
+        reg        pred_tage_taken;
+        reg [`OPEN132_TAGE_GHR_WD-1:0] pred_ghr;
 
         wire [2:0] pred_taken_nxt = pred_cnt == 3'b111 || pred_cnt == 3'b110
                                     ? 3'b111 : pred_cnt + 3'd2;
@@ -2144,7 +2159,9 @@ generate
                                     ? 3'b000 : pred_cnt - 3'd2;
         wire [2:0] pred_cnt_nxt   = jbr_taken ? pred_taken_nxt : pred_non_nxt;
 
-        assign pred_taken = pred_valid & (|pred_cnt[2:1]);
+        // conditional direct branch -> TAGE direction; otherwise legacy counter
+        wire       pred_taken_dir = pred_cond ? pred_tage_taken : (|pred_cnt[2:1]);
+        assign pred_taken = pred_valid & pred_taken_dir;
 
         always @ (posedge clk_g) begin
             if (data_reset) begin
@@ -2154,6 +2171,9 @@ generate
                 pred_jrra     <= 1'b0;
                 pred_pos      <= 4'b0;
                 pred_cnt      <= 3'b0;
+                pred_cond     <= 1'b0;
+                pred_tage_taken <= 1'b0;
+                pred_ghr      <= {`OPEN132_TAGE_GHR_WD{1'b0}};
             end
             else if (de_allowin && ifu_idu_inst_valid) begin
                 pred_valid    <= ft_pred_valid;
@@ -2162,6 +2182,9 @@ generate
                 pred_jrra     <= ft_pred_jrra;
                 pred_pos      <= ft_pred_pos;
                 pred_cnt      <= ft_pred_cnt;
+                pred_cond     <= ft_pred_cond;
+                pred_tage_taken <= ft_pred_tage_taken;
+                pred_ghr      <= ft_pred_ghr;
             end
         end
 
@@ -2174,8 +2197,15 @@ generate
         assign de_pred_brlo_hit = pred_brlo_hit;
         assign de_pred_jrlo_hit = pred_jrlo_hit;
         assign de_pred_jrra     = lisa_jr && rj == 5'd1 || pred_valid && pred_jrra;
-        assign de_pred_npc      = jbr_target;
-        assign de_pred_pc       = true_now_pc;
+        assign de_pred_npc       = jbr_target;
+        assign de_pred_pc        = true_now_pc;
+
+        // TAGE training info: actual direction of a resolved conditional branch,
+        // plus the global-history snapshot captured at fetch time.
+        assign de_pred_taken     = jbr_taken;
+        assign de_pred_cond      = !de_ex && valid && de2nxt_inst_cmplt
+                                   && !jbr_stall && lisa_br;
+        assign de_pred_ghr       = pred_ghr;
 
         assign idu_ifu_ra_value = valid && (wb_dest == 5'd1) && !wb_mdu_stall
                                   ? wb_fd_result : regfile_ra_value;
@@ -2198,6 +2228,9 @@ generate
         assign de_pred_jrra      = 1'b0;
         assign de_pred_npc       = 32'd0;
         assign de_pred_pc        = 32'd0;
+        assign de_pred_taken     = 1'b0;
+        assign de_pred_cond      = 1'b0;
+        assign de_pred_ghr       = {`OPEN132_TAGE_GHR_WD{1'b0}};
 
         assign idu_ifu_ra_change = 1'b0;
         assign idu_ifu_ra_value  = 32'b0;

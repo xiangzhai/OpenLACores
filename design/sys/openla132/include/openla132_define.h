@@ -36,9 +36,14 @@
 `define OPEN132_IFC2MEM_BUS_WD   74
 `define OPEN132_LISA_DECODE_BUS_WD 91
 `define OPEN132_LISA_FPU_DECODE_BUS_WD 42
-`define OPEN132_PRED2FT_BUS_WD   43
-`define OPEN132_FT2DE_PRED_BUS_WD 11
-`define OPEN132_DE2PRED_BUS_WD   76
+// TAGE branch-predictor global history width (also carried on pred/update buses)
+`define OPEN132_TAGE_GHR_WD      12
+// pred bus: {valid,brlo_hit,jrlo_hit,jr,npc[31:0],pos[3:0],cnt[2:0],cond,tage_taken,ghr[TAGE_GHR_WD-1:0]}
+`define OPEN132_PRED2FT_BUS_WD   (43 + 2 + `OPEN132_TAGE_GHR_WD)
+// ft2de pred bus: {valid,brlo_hit,jrlo_hit,jrra,pos[3:0],cnt[2:0],cond,tage_taken,ghr[TAGE_GHR_WD-1:0]}
+`define OPEN132_FT2DE_PRED_BUS_WD (11 + 2 + `OPEN132_TAGE_GHR_WD)
+// update bus adds {taken,cond,ghr[TAGE_GHR_WD-1:0]}
+`define OPEN132_DE2PRED_BUS_WD   (76 + 2 + `OPEN132_TAGE_GHR_WD)
 
 // Refactored hierarchy bus names. The CONFIG_MMU=0 values remain aliases of
 // the original CPU configuration macros above.

@@ -38,6 +38,7 @@ design/sys/openla132/dsu/dsu_gpr.v
 design/sys/openla132/dsu/dsu_inst_dec.v
 design/sys/openla132/dsu/dsu_stage.v
 design/sys/openla132/ifu/ifu_bpu.v
+design/sys/openla132/ifu/ifu_tage.v
 design/sys/openla132/ifu/ifu_dec4_16.v
 design/sys/openla132/ifu/ifu_enc_n_m.v
 design/sys/openla132/ifu/ifu_first1_n.v

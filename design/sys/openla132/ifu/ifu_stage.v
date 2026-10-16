@@ -144,6 +144,10 @@ wire          pred_jrra;
 wire [ 31: 0] pred_npc;
 wire [  3: 0] pred_pos;
 wire [  2: 0] pred_cnt;
+wire          pred_cond;
+wire          pred_tage_taken;
+wire [`OPEN132_TAGE_GHR_WD-1: 0] pred_ghr;
+wire          pred_taken_dir;   // final taken/not-taken direction of the prediction
 
 // ra_bus
 wire          de_ra_change;
@@ -271,7 +275,10 @@ assign {pred_valid,
         pred_jrra,
         pred_npc,
         pred_pos,
-        pred_cnt}  =  bpu_ifu_pred_bus&{`OPEN132_BPU_IFU_PRED_BUS_WIDTH{HAS_BTB}};
+        pred_cnt,
+        pred_cond,
+        pred_tage_taken,
+        pred_ghr}  =  bpu_ifu_pred_bus&{`OPEN132_BPU_IFU_PRED_BUS_WIDTH{HAS_BTB}};
 
 assign { de_ra_change,
          de_ra_value }  =  idu_ifu_return_bus;
@@ -283,7 +290,10 @@ assign ifu_idu_pred_bus  =  {pred_valid,
                               pred_jrlo_hit,
                               pred_jrra,
                               pred_pos,
-                              pred_cnt
+                              pred_cnt,
+                              pred_cond,
+                              pred_tage_taken,
+                              pred_ghr
                             };
 // End ifu_idu_pred_bus
 // End Bus Connections
@@ -327,8 +337,9 @@ assign pc_allowin            =  idu_ifu_allowin & fetch_validout;
 assign ifu_idu_seq_pc[31:2]  =  pc[31:2] + 1'b1;
 assign ifu_idu_seq_pc[1   ]  =  1'b0;
 assign ifu_idu_seq_pc[0   ]  =  pc[0];
-assign pred_taken            =  pred_valid && (|pred_cnt[2:1]);
-assign pred_jrra_taken       =  pred_valid && (|pred_cnt[2:1]) && pred_jrra;
+assign pred_taken_dir        =  pred_cond ? pred_tage_taken : (|pred_cnt[2:1]);
+assign pred_taken            =  pred_valid && pred_taken_dir;
+assign pred_jrra_taken       =  pred_valid && pred_taken_dir && pred_jrra;
 assign nextpc                =  jbr_taken_r ? jbr_target_r :
                                   jbr_taken   ? jbr_target   :
                                   pred_taken  ? (pred_jrra ? de_ra_value : pred_npc) :

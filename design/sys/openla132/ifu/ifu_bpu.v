@@ -40,20 +40,27 @@ assign {userdef_clr_pred,enable_pred} = csr_bpu_ctrl_bus;
 
 //------{bpu_ifu_pred_bus}begin
 genvar i,j;
-wire        pred_valid;
-wire        pred_brlo_hit;
-wire        pred_jrlo_hit;
-wire        pred_jr;
-wire [31:0] pred_npc;
-wire [3 :0] pred_pos;
-wire [2 :0] pred_cnt;
+localparam GHR_WD = `OPEN132_TAGE_GHR_WD;
+wire            pred_valid;
+wire            pred_brlo_hit;
+wire            pred_jrlo_hit;
+wire            pred_jr;
+wire [31     :0] pred_npc;
+wire [3      :0] pred_pos;
+wire [2      :0] pred_cnt;
+wire            pred_cond;
+wire            pred_tage_taken;
+wire [GHR_WD-1:0] pred_ghr;
 assign bpu_ifu_pred_bus = {pred_valid,
                       pred_brlo_hit,
                       pred_jrlo_hit,
                       pred_jr,
                       pred_npc,
                       pred_pos,
-                      pred_cnt};
+                      pred_cnt,
+                      pred_cond,
+                      pred_tage_taken,
+                      pred_ghr};
 //------{bpu_ifu_pred_bus}end
 //------{idu_bpu_update_bus}begin
 wire [31:0] de_pred_pc;
@@ -65,6 +72,9 @@ wire [3:0]  de_pred_pos;
 wire [2:0]  de_pred_cnt;
 wire        de_pred_correct;
 wire        de_pred_valid_temp;
+wire        de_pred_taken;
+wire        de_pred_cond;
+wire [GHR_WD-1:0] de_pred_ghr;
 assign {de_pred_pc     ,
         de_pred_npc    ,
         de_pred_jr     ,
@@ -73,7 +83,10 @@ assign {de_pred_pc     ,
         de_pred_pos    ,
         de_pred_cnt    ,
         de_pred_correct,
-        de_pred_valid_temp
+        de_pred_valid_temp,
+        de_pred_taken  ,
+        de_pred_cond   ,
+        de_pred_ghr
        } = idu_bpu_update_bus;
 
 wire de_pred_valid = de_pred_valid_temp && enable_pred;
@@ -85,6 +98,8 @@ reg  [32-HIGH_WD-2-1:0] tag_br_lo [BTB_NUM-1:0];
 reg  [13:0]             btb_npc   [BTB_NUM-1:0];
 reg  [2:0]              btb_cnt   [BTB_NUM-1:0];
 reg  [BTB_NUM-1:0]      br_which_high;
+// per-BTB-entry marker: 1 = conditional branch (TAGE direction), 0 = unconditional
+reg  [BTB_NUM-1:0]      br_cond;
 reg  [32-HIGH_WD-2-1:0] tag_jr_lo [RS_NUM-1:0];
 reg  [2             :0] jr_cnt    [RS_NUM-1:0];
 reg  [RS_NUM-1:0]       jr_which_high;
@@ -254,12 +269,14 @@ begin
         tag_br_lo[i]    <= {32-HIGH_WD-2{1'b0}};
         br_which_high[i]<= 1'b0;
         btb_npc[i]      <= 14'b0;
+        br_cond[i]      <= 1'b0;
     end
     else if (btb_new_hit[i])
     begin
         tag_br_lo[i]    <= tag_nxt;
         br_which_high[i]<= tag_which_high_nxt;
         btb_npc[i]      <= btb_npc_nxt;
+        br_cond[i]      <= de_pred_cond;
     end
 end
 end
@@ -370,6 +387,12 @@ ifu_enc_n_m #(.N(8)) jr_read_pos_encode(
 
 //-------{BTB READ}end
 //-----bpu_ifu_pred_bus signasl
+// TAGE provides the direction for conditional direct branches. pred_cnt keeps
+// carrying the legacy BTB/jr confidence counter (used for BTB replacement and
+// updates); the TAGE decision rides on pred_cond / pred_tage_taken so that the
+// final taken/not-taken choice does not corrupt the BTB entry lifetime.
+wire btb_read_cond;
+assign btb_read_cond= |(br_cond & btb_read_hit);
 assign pred_valid   = (btb_any_read_hit || jr_any_read_hit)&&enable_pred;
 assign pred_brlo_hit= br_lo_any_read_hit;
 assign pred_jrlo_hit= jrlo_any_read_hit;
@@ -378,6 +401,8 @@ assign pred_npc     = {pred_pc[31:16],btb_read_npc,2'b0};
 assign pred_pos     = jr_any_read_hit ? jr_read_pos : btb_read_pos;
 assign pred_cnt     = jr_any_read_hit ? jr_read_cnt
                                       : btb_read_cnt;
+// conditional direct-branch BTB hit -> direction comes from TAGE
+assign pred_cond      = btb_read_cond && !jr_any_read_hit;
 `ifdef OPEN132_DEBUG
 wire [3:0] btb_sel_pos;
 ifu_enc_n_m #(.N(16)) lru_sel_pos_encode(
@@ -401,4 +426,22 @@ assert property (
     )
 else begin $display("jrlo multi hit Assert Error!!!"); #2 $finish; end
 `endif
+
+//------------------------------------------------------------//
+//                       TAGE predictor
+//------------------------------------------------------------//
+ifu_tage #(
+    .GH        (GHR_WD)
+) x_ifu_tage (
+    .clk_g     (clk_g                ),
+    .reset     (reset                ),
+    .clear     (userdef_clr_pred     ),
+    .pred_pc   (ifu_bpu_pc           ),
+    .pred_taken(pred_tage_taken      ),
+    .pred_ghr  (pred_ghr             ),
+    .upd_valid (de_pred_cond && enable_pred),
+    .upd_pc    (de_pred_pc           ),
+    .upd_taken (de_pred_taken        ),
+    .upd_ghr   (de_pred_ghr          )
+);
 endmodule
