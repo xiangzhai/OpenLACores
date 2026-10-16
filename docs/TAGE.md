@@ -118,11 +118,30 @@ TAGE 仅对 `lisa_br` 训练与推进 GHR；无条件跳转 / jalr 不进入 TAG
 已做：
 
 - `iverilog -g2012 -Wall` 全核 elaborate 通过，无新增告警（仅原有 cache RAM 数组越界告警）；
-- `ifu_tage` 动态冒烟测试：同一循环分支训练后预测收敛为 taken；5000 次随机激励无 X、无越界、无崩溃。
+- `ifu_tage` 动态冒烟测试：同一循环分支训练后预测收敛为 taken；5000 次随机激励无 X、无越界、无崩溃；
+- **Verilator + loong-emu DiffTest**：确认提交 PC/寄存器状态与参考模型一致。验证前修正
+  `verify/verilator/src/diff_micro.cpp` 中写死的 CSR 特例（`0x0402bd6b` 改为通用
+  `is_userdef_csr()`，覆盖 `csrwr/csrxchg` 访问 LA132 私有 CSRF `0xaf`），使参考模型未实现的
+  该 CSR 写回以 RTL 为准；RTL、工具链与参考模型均未改动。全部运行 `difftest=on`，逐提交
+  比较 PC 与全部 GPR 低 32 位，无失配：
+
+  | 镜像 | 结果 | cycles | commits |
+  | --- | --- | --- | --- |
+  | `hello_world.exe` | GOOD TRAP @0x1c0031c0 | 7,084 | 4,235 |
+  | `dhrystone.exe` | GOOD TRAP @0x1c003370 | 8,488,469 | 5,846,441 |
+  | CoreMark 30 迭代 | GOOD TRAP @0x1c0049d0 | 12,294,427 | 8,864,338 |
+  | CoreMark 3000 迭代（有界长跑） | 无失配（墙钟超时中止） | 236,473,986 | 170,484,835 |
+  | `make test`（含 checkpoint 保存/恢复） | 通过 | — | — |
+
+  CoreMark 30 迭代 CRC 与基线一致（`crclist=0xe714`、`crcmatrix=0x1fd7`、`crcstate=0x8e3a`、
+  `crcfinal=0xf8b3`），`Total ticks=12252222`。CoreMark / Dhrystone 分支密集，可覆盖 TAGE
+  训练/更新路径；长时间零失配表明 TAGE 改造未破坏体系结构正确性。复现需将 Verilator 与
+  LA32S 工具链加入 `PATH`，`make -C verify/verilator` 后以
+  `--diff --ref verify/loong-emu/build/la_emu_ref.so` 运行；本机无
+  `loongarch64-linux-gnu-objcopy` 时 `make test` 需传 `ELF64_OBJCOPY=objcopy`。
 
 未做（**必须补做**）：
 
-- **Verilator + loong-emu DiffTest**：确认提交 PC/寄存器状态与参考模型一致（本环境无 Verilator）；
 - **Vivado 综合**：确认时序与资源（TAGE 表容量、组合索引路径）；
 - CoreMark / Dhrystone 前后对比，量化 TAGE 相对原 BTB 的 IPC 增益。
 
@@ -135,4 +154,4 @@ TAGE 仅对 `lisa_br` 训练与推进 GHR；无条件跳转 / jalr 不进入 TAG
 
 ## 10. 结论
 
-在保持 OpenLA132 流水线与体系结构语义不变的前提下，前端基础方向预测已替换为可综合的 TAGE 实现，并通过与 BTB 计数器解耦避免了表项寿命被破坏的问题。功能安全依赖既有的误预测纠正通路；**上线前需以 DiffTest 与综合结果为准完成最终验证**。
+在保持 OpenLA132 流水线与体系结构语义不变的前提下，前端基础方向预测已替换为可综合的 TAGE 实现，并通过与 BTB 计数器解耦避免了表项寿命被破坏的问题。功能安全依赖既有的误预测纠正通路；**Verilator + loong-emu DiffTest 已通过，上线前仍需以综合（时序/资源）结果为准完成最终验证**。
