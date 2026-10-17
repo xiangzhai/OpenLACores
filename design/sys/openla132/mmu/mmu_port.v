@@ -53,6 +53,7 @@ module mmu_port #(
     input  wire [ 31: 0]  port_ptw_resp_vaddr,
     input  wire [  9: 0]  port_ptw_resp_asid,
     input  wire [ 19: 0]  port_ptw_resp_ppn,
+    input  wire [  5: 0]  port_ptw_resp_ps,
     input  wire           port_ptw_resp_global,
     input  wire           port_ptw_resp_dirty,
     input  wire [  1: 0]  port_ptw_resp_plv,
@@ -87,6 +88,7 @@ module mmu_port #(
     output wire           port_fill_vld,
     output wire [ 31: 0]  port_fill_vaddr,
     output wire [ 19: 0]  port_fill_ppn,
+    output wire [  5: 0]  port_fill_ps,
     output wire [  9: 0]  port_fill_asid,
     output wire           port_fill_global,
     output wire           port_fill_dirty,
@@ -160,6 +162,25 @@ wire          ptw_success;
 wire          ptw_fault;
 wire [  5: 0] ptw_expt_code;
 wire [ 31: 0] ptw_paddr;
+
+function [31: 0] make_paddr;
+    input [19: 0] ppn;
+    input [31: 0] vaddr;
+    input [ 5: 0] ps;
+    reg   [31: 0] mask;
+    begin
+        if (ps <= 6'd12) begin
+            mask = 32'h0000_0FFF;
+        end
+        else if (ps >= 6'd32) begin
+            mask = 32'hFFFF_FFFF;
+        end
+        else begin
+            mask = (32'h1 << ps) - 32'h1;
+        end
+        make_paddr = ({ppn, 12'd0} & ~mask) | (vaddr & mask);
+    end
+endfunction
 
 
 //------------------------------------------------------------//
@@ -270,7 +291,8 @@ assign ptw_expt_code          =  port_ptw_resp_bus_err ? EXCODE_BERR :
                                  IS_FETCH               ? EXCODE_PIF  :
                                  write_r                ? EXCODE_PIS  :
                                                           EXCODE_PIL;
-assign ptw_paddr              =  {port_ptw_resp_ppn, port_ptw_resp_vaddr[11:0]};
+assign ptw_paddr              =  make_paddr(port_ptw_resp_ppn, port_ptw_resp_vaddr,
+                                             port_ptw_resp_ps);
 
 //------------------------------------------------------------//
 //                    Upstream Completion
@@ -297,6 +319,7 @@ assign port_fill_vld          =  (state_r == PORT_PTW) && port_ptw_resp_vld
                                  && !drop_r && !pending_kill && ptw_success;
 assign port_fill_vaddr        =  port_ptw_resp_vaddr;
 assign port_fill_ppn          =  port_ptw_resp_ppn;
+assign port_fill_ps           =  port_ptw_resp_ps;
 assign port_fill_asid         =  port_ptw_resp_asid;
 assign port_fill_global       =  port_ptw_resp_global;
 assign port_fill_dirty        =  port_ptw_resp_dirty;

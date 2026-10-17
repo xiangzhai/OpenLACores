@@ -43,6 +43,8 @@ module mmu_core (
     input  wire [ 31: 0]  csr_pgdh,
     input  wire [ 31: 0]  csr_dmw0,
     input  wire [ 31: 0]  csr_dmw1,
+    input  wire [ 31: 0]  csr_pwcl,
+    input  wire [ 31: 0]  csr_pwch,
     input  wire           csr_ptw_en,
 
     input  wire           csr_inv_vld,
@@ -141,6 +143,7 @@ wire          ptw_resp_port;
 wire [ 31: 0] ptw_resp_vaddr;
 wire [  9: 0] ptw_resp_asid;
 wire [ 19: 0] ptw_resp_ppn;
+wire [  5: 0] ptw_resp_ps;
 wire          ptw_resp_global;
 wire          ptw_resp_dirty;
 wire [  1: 0] ptw_resp_plv;
@@ -154,6 +157,7 @@ wire         lsu_port_ptw_resp_vld;
 wire          ifu_port_fill_vld;
 wire [ 31: 0] ifu_port_fill_vaddr;
 wire [ 19: 0] ifu_port_fill_ppn;
+wire [  5: 0] ifu_port_fill_ps;
 wire [  9: 0] ifu_port_fill_asid;
 wire          ifu_port_fill_global;
 wire          ifu_port_fill_dirty;
@@ -162,6 +166,7 @@ wire [  1: 0] ifu_port_fill_mat;
 wire          lsu_port_fill_vld;
 wire [ 31: 0] lsu_port_fill_vaddr;
 wire [ 19: 0] lsu_port_fill_ppn;
+wire [  5: 0] lsu_port_fill_ps;
 wire [  9: 0] lsu_port_fill_asid;
 wire          lsu_port_fill_global;
 wire          lsu_port_fill_dirty;
@@ -171,6 +176,7 @@ wire [  1: 0] lsu_port_fill_mat;
 wire          tlb_fill_vld;
 wire [ 31: 0] tlb_fill_vaddr;
 wire [ 19: 0] tlb_fill_ppn;
+wire [  5: 0] tlb_fill_ps;
 wire [  9: 0] tlb_fill_asid;
 wire          tlb_fill_global;
 wire          tlb_fill_dirty;
@@ -234,6 +240,8 @@ assign tlb_fill_vaddr         =  lsu_port_fill_vld ? lsu_port_fill_vaddr
                                  : ifu_port_fill_vaddr;
 assign tlb_fill_ppn           =  lsu_port_fill_vld ? lsu_port_fill_ppn
                                  : ifu_port_fill_ppn;
+assign tlb_fill_ps            =  lsu_port_fill_vld ? lsu_port_fill_ps
+                                 : ifu_port_fill_ps;
 assign tlb_fill_asid          =  lsu_port_fill_vld ? lsu_port_fill_asid
                                  : ifu_port_fill_asid;
 assign tlb_fill_global        =  lsu_port_fill_vld ? lsu_port_fill_global
@@ -298,6 +306,7 @@ mmu_port #(
     .port_ptw_resp_vaddr          (ptw_resp_vaddr            ),
     .port_ptw_resp_asid           (ptw_resp_asid             ),
     .port_ptw_resp_ppn            (ptw_resp_ppn              ),
+    .port_ptw_resp_ps             (ptw_resp_ps               ),
     .port_ptw_resp_global         (ptw_resp_global           ),
     .port_ptw_resp_dirty          (ptw_resp_dirty            ),
     .port_ptw_resp_plv            (ptw_resp_plv              ),
@@ -307,6 +316,7 @@ mmu_port #(
     .port_fill_vld                (ifu_port_fill_vld         ),
     .port_fill_vaddr              (ifu_port_fill_vaddr       ),
     .port_fill_ppn                (ifu_port_fill_ppn         ),
+    .port_fill_ps                 (ifu_port_fill_ps          ),
     .port_fill_asid               (ifu_port_fill_asid        ),
     .port_fill_global             (ifu_port_fill_global      ),
     .port_fill_dirty              (ifu_port_fill_dirty       ),
@@ -370,6 +380,7 @@ mmu_port #(
     .port_ptw_resp_vaddr          (ptw_resp_vaddr            ),
     .port_ptw_resp_asid           (ptw_resp_asid             ),
     .port_ptw_resp_ppn            (ptw_resp_ppn              ),
+    .port_ptw_resp_ps             (ptw_resp_ps               ),
     .port_ptw_resp_global         (ptw_resp_global           ),
     .port_ptw_resp_dirty          (ptw_resp_dirty            ),
     .port_ptw_resp_plv            (ptw_resp_plv              ),
@@ -379,6 +390,7 @@ mmu_port #(
     .port_fill_vld                (lsu_port_fill_vld         ),
     .port_fill_vaddr              (lsu_port_fill_vaddr       ),
     .port_fill_ppn                (lsu_port_fill_ppn         ),
+    .port_fill_ps                 (lsu_port_fill_ps          ),
     .port_fill_asid               (lsu_port_fill_asid        ),
     .port_fill_global             (lsu_port_fill_global      ),
     .port_fill_dirty              (lsu_port_fill_dirty       ),
@@ -414,6 +426,7 @@ mmu_tlb x_mmu_tlb (
     .lookup1_mat                  (lsu_tlb_lookup_mat        ),
     .fill_vld                     (tlb_fill_vld              ),
     .fill_vaddr                   (tlb_fill_vaddr            ),
+    .fill_ps                      (tlb_fill_ps               ),
     .fill_ppn                     (tlb_fill_ppn              ),
     .fill_asid                    (tlb_fill_asid             ),
     .fill_global                  (tlb_fill_global           ),
@@ -443,12 +456,15 @@ mmu_ptw x_mmu_ptw (
     .csr_pgdh                     (csr_pgdh                  ),
     .csr_dmw0                     (csr_dmw0                  ),
     .csr_dmw1                     (csr_dmw1                  ),
+    .csr_pwcl                     (csr_pwcl                  ),
+    .csr_pwch                     (csr_pwch                  ),
     .ptw_resp_vld                 (ptw_resp_vld              ),
     .ptw_resp_rdy                 (ptw_resp_rdy              ),
     .ptw_resp_port                (ptw_resp_port             ),
     .ptw_resp_vaddr               (ptw_resp_vaddr            ),
     .ptw_resp_asid                (ptw_resp_asid             ),
     .ptw_resp_ppn                 (ptw_resp_ppn              ),
+    .ptw_resp_ps                  (ptw_resp_ps               ),
     .ptw_resp_global              (ptw_resp_global           ),
     .ptw_resp_dirty               (ptw_resp_dirty            ),
     .ptw_resp_plv                 (ptw_resp_plv              ),

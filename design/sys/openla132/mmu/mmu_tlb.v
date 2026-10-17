@@ -32,6 +32,7 @@ module mmu_tlb (
 
     input  wire           fill_vld,
     input  wire [ 31: 0]  fill_vaddr,
+    input  wire [  5: 0]  fill_ps,
     input  wire [ 19: 0]  fill_ppn,
     input  wire [  9: 0]  fill_asid,
     input  wire           fill_global,
@@ -109,6 +110,14 @@ wire [ 19: 0] entry4_ppn;
 wire [ 19: 0] entry5_ppn;
 wire [ 19: 0] entry6_ppn;
 wire [ 19: 0] entry7_ppn;
+wire [  5: 0] entry0_ps;
+wire [  5: 0] entry1_ps;
+wire [  5: 0] entry2_ps;
+wire [  5: 0] entry3_ps;
+wire [  5: 0] entry4_ps;
+wire [  5: 0] entry5_ps;
+wire [  5: 0] entry6_ps;
+wire [  5: 0] entry7_ps;
 wire          entry0_dirty;
 wire          entry1_dirty;
 wire          entry2_dirty;
@@ -155,6 +164,7 @@ mmu_tlb_entry x_mmu_tlb_entry_0 (
     .lookup1_hit                  (lookup1_hit0              ),
     .fill_vld                     (fill_vld0                 ),
     .fill_vpn                     (fill_vpn                  ),
+    .fill_ps                      (fill_ps                   ),
     .fill_ppn                     (fill_ppn                  ),
     .fill_asid                    (fill_asid                 ),
     .fill_global                  (fill_global               ),
@@ -166,6 +176,7 @@ mmu_tlb_entry x_mmu_tlb_entry_0 (
     .inv_asid                     (inv_asid                  ),
     .inv_vpn                      (inv_vpn                   ),
     .entry_ppn                    (entry0_ppn                ),
+    .entry_ps                     (entry0_ps                 ),
     .entry_dirty                  (entry0_dirty              ),
     .entry_plv                    (entry0_plv                ),
     .entry_mat                    (entry0_mat                )
@@ -184,6 +195,7 @@ mmu_tlb_entry x_mmu_tlb_entry_1 (
     .lookup1_hit                  (lookup1_hit1              ),
     .fill_vld                     (fill_vld1                 ),
     .fill_vpn                     (fill_vpn                  ),
+    .fill_ps                      (fill_ps                   ),
     .fill_ppn                     (fill_ppn                  ),
     .fill_asid                    (fill_asid                 ),
     .fill_global                  (fill_global               ),
@@ -195,6 +207,7 @@ mmu_tlb_entry x_mmu_tlb_entry_1 (
     .inv_asid                     (inv_asid                  ),
     .inv_vpn                      (inv_vpn                   ),
     .entry_ppn                    (entry1_ppn                ),
+    .entry_ps                     (entry1_ps                 ),
     .entry_dirty                  (entry1_dirty              ),
     .entry_plv                    (entry1_plv                ),
     .entry_mat                    (entry1_mat                )
@@ -213,6 +226,7 @@ mmu_tlb_entry x_mmu_tlb_entry_2 (
     .lookup1_hit                  (lookup1_hit2              ),
     .fill_vld                     (fill_vld2                 ),
     .fill_vpn                     (fill_vpn                  ),
+    .fill_ps                      (fill_ps                   ),
     .fill_ppn                     (fill_ppn                  ),
     .fill_asid                    (fill_asid                 ),
     .fill_global                  (fill_global               ),
@@ -224,6 +238,7 @@ mmu_tlb_entry x_mmu_tlb_entry_2 (
     .inv_asid                     (inv_asid                  ),
     .inv_vpn                      (inv_vpn                   ),
     .entry_ppn                    (entry2_ppn                ),
+    .entry_ps                     (entry2_ps                 ),
     .entry_dirty                  (entry2_dirty              ),
     .entry_plv                    (entry2_plv                ),
     .entry_mat                    (entry2_mat                )
@@ -242,6 +257,7 @@ mmu_tlb_entry x_mmu_tlb_entry_3 (
     .lookup1_hit                  (lookup1_hit3              ),
     .fill_vld                     (fill_vld3                 ),
     .fill_vpn                     (fill_vpn                  ),
+    .fill_ps                      (fill_ps                   ),
     .fill_ppn                     (fill_ppn                  ),
     .fill_asid                    (fill_asid                 ),
     .fill_global                  (fill_global               ),
@@ -253,6 +269,7 @@ mmu_tlb_entry x_mmu_tlb_entry_3 (
     .inv_asid                     (inv_asid                  ),
     .inv_vpn                      (inv_vpn                   ),
     .entry_ppn                    (entry3_ppn                ),
+    .entry_ps                     (entry3_ps                 ),
     .entry_dirty                  (entry3_dirty              ),
     .entry_plv                    (entry3_plv                ),
     .entry_mat                    (entry3_mat                )
@@ -271,6 +288,7 @@ mmu_tlb_entry x_mmu_tlb_entry_4 (
     .lookup1_hit                  (lookup1_hit4              ),
     .fill_vld                     (fill_vld4                 ),
     .fill_vpn                     (fill_vpn                  ),
+    .fill_ps                      (fill_ps                   ),
     .fill_ppn                     (fill_ppn                  ),
     .fill_asid                    (fill_asid                 ),
     .fill_global                  (fill_global               ),
@@ -282,6 +300,7 @@ mmu_tlb_entry x_mmu_tlb_entry_4 (
     .inv_asid                     (inv_asid                  ),
     .inv_vpn                      (inv_vpn                   ),
     .entry_ppn                    (entry4_ppn                ),
+    .entry_ps                     (entry4_ps                 ),
     .entry_dirty                  (entry4_dirty              ),
     .entry_plv                    (entry4_plv                ),
     .entry_mat                    (entry4_mat                )
@@ -300,6 +319,7 @@ mmu_tlb_entry x_mmu_tlb_entry_5 (
     .lookup1_hit                  (lookup1_hit5              ),
     .fill_vld                     (fill_vld5                 ),
     .fill_vpn                     (fill_vpn                  ),
+    .fill_ps                      (fill_ps                   ),
     .fill_ppn                     (fill_ppn                  ),
     .fill_asid                    (fill_asid                 ),
     .fill_global                  (fill_global               ),
@@ -311,6 +331,7 @@ mmu_tlb_entry x_mmu_tlb_entry_5 (
     .inv_asid                     (inv_asid                  ),
     .inv_vpn                      (inv_vpn                   ),
     .entry_ppn                    (entry5_ppn                ),
+    .entry_ps                     (entry5_ps                 ),
     .entry_dirty                  (entry5_dirty              ),
     .entry_plv                    (entry5_plv                ),
     .entry_mat                    (entry5_mat                )
@@ -329,6 +350,7 @@ mmu_tlb_entry x_mmu_tlb_entry_6 (
     .lookup1_hit                  (lookup1_hit6              ),
     .fill_vld                     (fill_vld6                 ),
     .fill_vpn                     (fill_vpn                  ),
+    .fill_ps                      (fill_ps                   ),
     .fill_ppn                     (fill_ppn                  ),
     .fill_asid                    (fill_asid                 ),
     .fill_global                  (fill_global               ),
@@ -340,6 +362,7 @@ mmu_tlb_entry x_mmu_tlb_entry_6 (
     .inv_asid                     (inv_asid                  ),
     .inv_vpn                      (inv_vpn                   ),
     .entry_ppn                    (entry6_ppn                ),
+    .entry_ps                     (entry6_ps                 ),
     .entry_dirty                  (entry6_dirty              ),
     .entry_plv                    (entry6_plv                ),
     .entry_mat                    (entry6_mat                )
@@ -358,6 +381,7 @@ mmu_tlb_entry x_mmu_tlb_entry_7 (
     .lookup1_hit                  (lookup1_hit7              ),
     .fill_vld                     (fill_vld7                 ),
     .fill_vpn                     (fill_vpn                  ),
+    .fill_ps                      (fill_ps                   ),
     .fill_ppn                     (fill_ppn                  ),
     .fill_asid                    (fill_asid                 ),
     .fill_global                  (fill_global               ),
@@ -369,6 +393,7 @@ mmu_tlb_entry x_mmu_tlb_entry_7 (
     .inv_asid                     (inv_asid                  ),
     .inv_vpn                      (inv_vpn                   ),
     .entry_ppn                    (entry7_ppn                ),
+    .entry_ps                     (entry7_ps                 ),
     .entry_dirty                  (entry7_dirty              ),
     .entry_plv                    (entry7_plv                ),
     .entry_mat                    (entry7_mat                )
@@ -418,17 +443,38 @@ assign fill_vld7              =  fill_sel[7];
 //                       Lookup Result
 //------------------------------------------------------------//
 
+// PPN is expressed in 4 KiB units. For a larger page, the low
+// (PS-12) PPN bits are the in-page part and come from the VA.
+function [31: 0] make_paddr;
+    input [19: 0] ppn;
+    input [31: 0] vaddr;
+    input [ 5: 0] ps;
+    reg   [31: 0] mask;
+    begin
+        if (ps <= 6'd12) begin
+            mask = 32'h0000_0FFF;
+        end
+        else if (ps >= 6'd32) begin
+            mask = 32'hFFFF_FFFF;
+        end
+        else begin
+            mask = (32'h1 << ps) - 32'h1;
+        end
+        make_paddr = ({ppn, 12'd0} & ~mask) | (vaddr & mask);
+    end
+endfunction
+
 assign lookup0_hit            =  |lookup0_hit_vec;
 assign lookup1_hit            =  |lookup1_hit_vec;
 
-assign lookup0_paddr          =  lookup0_hit_vec[0] ? {entry0_ppn, lookup0_vaddr[11:0]} :
-                         lookup0_hit_vec[1] ? {entry1_ppn, lookup0_vaddr[11:0]} :
-                         lookup0_hit_vec[2] ? {entry2_ppn, lookup0_vaddr[11:0]} :
-                         lookup0_hit_vec[3] ? {entry3_ppn, lookup0_vaddr[11:0]} :
-                         lookup0_hit_vec[4] ? {entry4_ppn, lookup0_vaddr[11:0]} :
-                         lookup0_hit_vec[5] ? {entry5_ppn, lookup0_vaddr[11:0]} :
-                         lookup0_hit_vec[6] ? {entry6_ppn, lookup0_vaddr[11:0]} :
-                         lookup0_hit_vec[7] ? {entry7_ppn, lookup0_vaddr[11:0]} : 32'd0;
+assign lookup0_paddr          =  lookup0_hit_vec[0] ? make_paddr(entry0_ppn, lookup0_vaddr, entry0_ps) :
+                         lookup0_hit_vec[1] ? make_paddr(entry1_ppn, lookup0_vaddr, entry1_ps) :
+                         lookup0_hit_vec[2] ? make_paddr(entry2_ppn, lookup0_vaddr, entry2_ps) :
+                         lookup0_hit_vec[3] ? make_paddr(entry3_ppn, lookup0_vaddr, entry3_ps) :
+                         lookup0_hit_vec[4] ? make_paddr(entry4_ppn, lookup0_vaddr, entry4_ps) :
+                         lookup0_hit_vec[5] ? make_paddr(entry5_ppn, lookup0_vaddr, entry5_ps) :
+                         lookup0_hit_vec[6] ? make_paddr(entry6_ppn, lookup0_vaddr, entry6_ps) :
+                         lookup0_hit_vec[7] ? make_paddr(entry7_ppn, lookup0_vaddr, entry7_ps) : 32'd0;
 assign lookup0_dirty          =  lookup0_hit_vec[0] ? entry0_dirty :
                          lookup0_hit_vec[1] ? entry1_dirty :
                          lookup0_hit_vec[2] ? entry2_dirty :
@@ -454,14 +500,14 @@ assign lookup0_mat            =  lookup0_hit_vec[0] ? entry0_mat :
                          lookup0_hit_vec[6] ? entry6_mat :
                          lookup0_hit_vec[7] ? entry7_mat : 2'b0;
 
-assign lookup1_paddr          =  lookup1_hit_vec[0] ? {entry0_ppn, lookup1_vaddr[11:0]} :
-                         lookup1_hit_vec[1] ? {entry1_ppn, lookup1_vaddr[11:0]} :
-                         lookup1_hit_vec[2] ? {entry2_ppn, lookup1_vaddr[11:0]} :
-                         lookup1_hit_vec[3] ? {entry3_ppn, lookup1_vaddr[11:0]} :
-                         lookup1_hit_vec[4] ? {entry4_ppn, lookup1_vaddr[11:0]} :
-                         lookup1_hit_vec[5] ? {entry5_ppn, lookup1_vaddr[11:0]} :
-                         lookup1_hit_vec[6] ? {entry6_ppn, lookup1_vaddr[11:0]} :
-                         lookup1_hit_vec[7] ? {entry7_ppn, lookup1_vaddr[11:0]} : 32'd0;
+assign lookup1_paddr          =  lookup1_hit_vec[0] ? make_paddr(entry0_ppn, lookup1_vaddr, entry0_ps) :
+                         lookup1_hit_vec[1] ? make_paddr(entry1_ppn, lookup1_vaddr, entry1_ps) :
+                         lookup1_hit_vec[2] ? make_paddr(entry2_ppn, lookup1_vaddr, entry2_ps) :
+                         lookup1_hit_vec[3] ? make_paddr(entry3_ppn, lookup1_vaddr, entry3_ps) :
+                         lookup1_hit_vec[4] ? make_paddr(entry4_ppn, lookup1_vaddr, entry4_ps) :
+                         lookup1_hit_vec[5] ? make_paddr(entry5_ppn, lookup1_vaddr, entry5_ps) :
+                         lookup1_hit_vec[6] ? make_paddr(entry6_ppn, lookup1_vaddr, entry6_ps) :
+                         lookup1_hit_vec[7] ? make_paddr(entry7_ppn, lookup1_vaddr, entry7_ps) : 32'd0;
 assign lookup1_dirty          =  lookup1_hit_vec[0] ? entry0_dirty :
                          lookup1_hit_vec[1] ? entry1_dirty :
                          lookup1_hit_vec[2] ? entry2_dirty :

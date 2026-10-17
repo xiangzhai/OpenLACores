@@ -32,6 +32,7 @@ module mmu_tlb_entry (
 
     input  wire           fill_vld,
     input  wire [ 19: 0]  fill_vpn,
+    input  wire [  5: 0]  fill_ps,
     input  wire [ 19: 0]  fill_ppn,
     input  wire [  9: 0]  fill_asid,
     input  wire           fill_global,
@@ -47,6 +48,7 @@ module mmu_tlb_entry (
     output wire           lookup0_hit,
     output wire           lookup1_hit,
     output wire [ 19: 0]  entry_ppn,
+    output wire [  5: 0]  entry_ps,
     output wire           entry_dirty,
     output wire [  1: 0]  entry_plv,
     output wire [  1: 0]  entry_mat
@@ -58,6 +60,7 @@ module mmu_tlb_entry (
 
 reg          vld_r;
 reg [ 19: 0] vpn_r;
+reg [  5: 0] ps_r;
 reg [ 19: 0] ppn_r;
 reg [  9: 0] asid_r;
 reg          global_r;
@@ -80,6 +83,45 @@ wire         inv_match;
 //============================================================//
 
 //------------------------------------------------------------//
+//                       Page Size Helpers
+//------------------------------------------------------------//
+
+// PS is the architectural page shift (12 = 4 KiB, 14 = 16 KiB, ...).
+// VPN/PPN are held in 4 KiB units, so bits [PS-1:12] are the in-page
+// part of a larger translation and must be ignored for tag matching.
+function [19: 0] vpn_mask;
+    input [5: 0] ps;
+    begin
+        if (ps <= 6'd12) begin
+            vpn_mask = 20'hF_FFFF;
+        end
+        else if (ps >= 6'd32) begin
+            vpn_mask = 20'd0;
+        end
+        else begin
+            vpn_mask = 20'hF_FFFF << (ps - 6'd12);
+        end
+    end
+endfunction
+
+// LA32 INVTLB still addresses a paired VPPN. Ignore VPN bit 0 for
+// sub-8 KiB pages, and ignore the whole in-page VPN field for larger pages.
+function [19: 0] inv_vpn_mask;
+    input [5: 0] ps;
+    begin
+        if (ps <= 6'd13) begin
+            inv_vpn_mask = 20'hF_FFFE;
+        end
+        else if (ps >= 6'd32) begin
+            inv_vpn_mask = 20'd0;
+        end
+        else begin
+            inv_vpn_mask = 20'hF_FFFF << (ps - 6'd12);
+        end
+    end
+endfunction
+
+//------------------------------------------------------------//
 //                           Lookup
 //------------------------------------------------------------//
 
@@ -87,19 +129,16 @@ assign lookup0_asid_match     =  global_r || (asid_r == lookup0_asid);
 assign lookup1_asid_match     =  global_r || (asid_r == lookup1_asid);
 
 assign lookup0_hit            =  lookup0_vld && vld_r && lookup0_asid_match
-                                 && (vpn_r == lookup0_vpn);
+                                 && (((vpn_r ^ lookup0_vpn) & vpn_mask(ps_r)) == 20'd0);
 assign lookup1_hit            =  lookup1_vld && vld_r && lookup1_asid_match
-                                 && (vpn_r == lookup1_vpn);
+                                 && (((vpn_r ^ lookup1_vpn) & vpn_mask(ps_r)) == 20'd0);
 
 //------------------------------------------------------------//
 //                        Maintenance
 //------------------------------------------------------------//
 
 assign inv_asid_match         =  asid_r == inv_asid;
-// LA32 INVTLB addresses a paired 8 KiB VPPN when the page size is 4 KiB.
-// The internal L1TLB stores one 4 KiB page per entry, so ignore VPN bit 0
-// during maintenance to invalidate both pages in the architected pair.
-assign inv_vpn_match          =  vpn_r[19:1] == inv_vpn[19:1];
+assign inv_vpn_match          =  (((vpn_r ^ inv_vpn) & inv_vpn_mask(ps_r)) == 20'd0);
 
 assign inv_match              =  (inv_op == 5'd0)
                                  || (inv_op == 5'd1)
@@ -133,9 +172,13 @@ end
 //------------------------------------------------------------//
 always @ ( posedge clk )
 begin
-    if(fill_vld) begin
-        vpn_r    <= fill_vpn;
-        ppn_r    <= fill_ppn;
+    if(reset) begin
+        ps_r <= 6'd12;
+    end
+    else if(fill_vld) begin
+        vpn_r    <= fill_vpn & vpn_mask(fill_ps);
+        ppn_r    <= fill_ppn & vpn_mask(fill_ps);
+        ps_r     <= fill_ps;
         asid_r   <= fill_asid;
         global_r <= fill_global;
         dirty_r  <= fill_dirty;
@@ -149,6 +192,7 @@ end
 //------------------------------------------------------------//
 
 assign entry_ppn              =  ppn_r;
+assign entry_ps               =  ps_r;
 assign entry_dirty            =  dirty_r;
 assign entry_plv              =  plv_r;
 assign entry_mat              =  mat_r;

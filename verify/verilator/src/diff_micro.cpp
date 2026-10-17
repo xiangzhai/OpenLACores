@@ -47,6 +47,16 @@ bool is_debug_csr(uint32_t inst) {
   return csr >= 0x300U && csr <= 0x3ffU;
 }
 
+// Identifies the LA132 user-defined control CSR. The reference model does
+// not implement it, so any GPR result from csrrd/csrwr/csrxchg is taken from
+// the DUT instead of being compared against the reference.
+bool is_userdef_csr(uint32_t inst) {
+  if ((inst & 0xff000000U) != 0x04000000U) {
+    return false;
+  }
+  return ((inst >> 10U) & 0x3fffU) == 0x0afU;
+}
+
 constexpr std::array<uint32_t, 23> extra_csrs = {
   0x1cU, 0x1dU, 0x1eU, 0x1fU, 0x21U, 0x22U, 0x23U, 0x43U, 0x80U, 0x81U, 0x89U, 0x8aU,
   0x8bU, 0x8cU, 0x8dU, 0x8eU, 0x8fU, 0x90U, 0x91U, 0x92U, 0x93U, 0x94U, 0x95U,
@@ -195,7 +205,7 @@ public:
       rdtime_pending = false;
       rdtime_second = false;
       changed = true;
-    } else if ((is_cpucfg(commit.inst) || is_debug_csr(commit.inst) || commit.inst == 0x0402bd6bU ) && commit.wen && commit.wdest) {
+    } else if ((is_cpucfg(commit.inst) || is_debug_csr(commit.inst) || is_userdef_csr(commit.inst)) && commit.wen && commit.wdest) {
       regs.xrf.value[commit.wdest] = commit.wdata;
       changed = true;
     }

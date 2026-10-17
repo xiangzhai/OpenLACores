@@ -92,6 +92,12 @@ Cache 的容量、相联度和 ECC 参数在核心参数与配置宏中定义。
 使用上述固定参数；若直接实例化 la132_core，则应由集成方同时传入 HAS_ICC、HAS_DCC、
 相联度、每路容量和 ECC 参数，且保证 RAM 封装与这些参数一致。
 
+分页支持的基本页大小为 4 KiB、16 KiB 和 64 KiB，并由 `PRCFG2` 上报。硬件页表遍历器
+从 `PWCL`（CSR 0x1c）和 `PWCH`（CSR 0x1d）读取 `PTBASE/PTWIDTH` 以及各级目录的
+`DIRnBASE/DIRnWIDTH`，因此遍历层数和每级索引宽度是运行时可配置的；`PTBASE` 同时作为
+叶级页大小（架构 PS 编码：12/14/16）。L1TLB 每项保存自己的 PS，查表、物理地址拼接和
+`INVTLB` 地址匹配都按该项的页大小处理。当前不支持目录项 `H=1` 的大页。
+
 ### 4.2 复位与 Cache 初始化
 
 核心复位由 hard_resetn 经同步后生成。Cache/写缓冲初始化完成信号参与复位释放；

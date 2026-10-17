@@ -850,7 +850,9 @@ assign csr_cache_ctrl_bus  =  {csr_cache_cfgseg_calg     ,
 //                      csr_mmu_ctrl_bus
 //------------------------------------------------------------//
 
-assign csr_mmu_ctrl_bus  =  {plv_r,             // 194:193, current PLV
+assign csr_mmu_ctrl_bus  =  {pwctl0_r,          // 258:227, page-walk control 0
+                              pwctl1_r,          // 226:195, page-walk control 1
+                              plv_r,             // 194:193, current PLV
                               da_r,              // 192, direct-address mode
                               pg_r,              // 191, paging mode
                               dacf_r,            // 190:189, direct fetch MAT
@@ -1544,7 +1546,7 @@ assign csr_csr21  =  {10'd0 ,  // 31:22
 //                    csr22-csr23: MMU Config
 //------------------------------------------------------------//
 
-assign csr_csr22  =  32'h0000_1000;  // Only the 4 KiB page size is supported.
+assign csr_csr22  =  32'h0001_5000;  // 4 KiB, 16 KiB and 64 KiB page sizes.
 assign csr_csr23  =  32'h0000_0071;  // One fully associative eight-entry TLB.
 // End csr22-csr23: MMU Config
 `endif
@@ -2079,10 +2081,17 @@ assign csr_csr1d  =  pwctl1_r;
 
 always @ ( posedge clk_cr )
 begin
-    if(data_reset) begin
+    if(reset) begin
+        // Default to the 4 KiB, two-level layout used before PWCL was
+        // consumed by the walker. Widths use the architectural 8-byte
+        // slot convention; the LA32 walker adds the 32-bit entry bit.
+        pwctl0_r <= 32'h0004_D92C;
+        pwctl1_r <= 32'd0;
+    end
+    else if(data_reset) begin
         pgdl_r   <= 32'd0;
         pgdh_r   <= 32'd0;
-        pwctl0_r <= 32'd0;
+        pwctl0_r <= 32'h0004_D92C;
         pwctl1_r <= 32'd0;
     end
     else begin

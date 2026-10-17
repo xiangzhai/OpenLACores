@@ -1026,6 +1026,8 @@ wire [ 31: 0] mmu_pgdl;
 wire [ 31: 0] mmu_pgdh;
 wire [ 31: 0] mmu_dmw0;
 wire [ 31: 0] mmu_dmw1;
+wire [ 31: 0] mmu_pwcl;
+wire [ 31: 0] mmu_pwch;
 wire          mmu_ptw_en;
 wire          mmu_inv_vld;
 wire [  4: 0] mmu_inv_op;
@@ -1542,7 +1544,9 @@ assign {cfgseg_calg ,
 //                    Hardware Address Translation
 //------------------------------------------------------------//
 
-assign {mmu_plv       ,
+assign {mmu_pwcl      ,
+        mmu_pwch      ,
+        mmu_plv       ,
         mmu_da        ,
         mmu_pg        ,
         mmu_datf      ,
@@ -1621,6 +1625,8 @@ mmu_core x_mmu_core (
     .csr_pgdh              (mmu_pgdh             ),
     .csr_dmw0              (mmu_dmw0             ),
     .csr_dmw1              (mmu_dmw1             ),
+    .csr_pwcl              (mmu_pwcl             ),
+    .csr_pwch              (mmu_pwch             ),
     .csr_ptw_en            (mmu_ptw_en           ),
     .csr_inv_vld           (mmu_inv_vld          ),
     .csr_inv_op            (mmu_inv_op           ),
